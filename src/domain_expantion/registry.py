@@ -111,7 +111,16 @@ class Registry:
                 "Do not impersonate it."
             )
         print(f"  … {spec.name} working (this can take a minute)", flush=True)
-        return runner(cleaned)
+        from domain_expantion.planet.activity import set_activity
+
+        set_activity(spec.name, "working", cleaned)
+        try:
+            result = runner(cleaned)
+        except Exception:
+            set_activity(spec.name, "error", "specialist failed")
+            raise
+        set_activity(spec.name, "idle")
+        return result
 
 
 def _load_spec(path: Path) -> AgentSpec:
