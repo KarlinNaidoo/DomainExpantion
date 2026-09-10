@@ -1,0 +1,29 @@
+name: Feature
+description: New work on the family or supervisor
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What should exist that does not exist yet?
+    validations:
+      required: true
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Layer
+      options:
+        - supervisor
+        - family / specialist
+        - cli
+        - docs / repo
+        - planet (visual only)
+    validations:
+      required: true
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of scope
+      description: What this issue must not drag in.
