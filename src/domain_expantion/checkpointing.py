@@ -14,12 +14,16 @@ def open_checkpointer(settings: Settings | None = None) -> Iterator[Any]:
     settings = settings or Settings.from_env()
     uri = settings.require_database_url()
     try:
-        with PostgresSaver.from_conn_string(uri) as saver:
-            saver.setup()
-            yield saver
+        pool = PostgresSaver.from_conn_string(uri)
+        saver = pool.__enter__()
+        saver.setup()
     except Exception as exc:
         raise RuntimeError(
             "Could not open the Postgres checkpointer. "
             "Start it with: docker compose up -d\n"
             f"DATABASE_URL={uri}\n{exc}"
         ) from exc
+    try:
+        yield saver
+    finally:
+        pool.__exit__(None, None, None)
