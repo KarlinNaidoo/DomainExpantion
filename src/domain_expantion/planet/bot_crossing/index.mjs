@@ -1,13 +1,10 @@
 /**
  * Overlay for vendor/bot-crossing/server/harnesses/index.mjs
- * Adds the Domain Expantion family next to Claude/Codex/Cursor.
+ * Family only — do not scan Claude/Codex/Cursor on this machine.
  */
-import claudeCode from './claude-code.mjs'
-import codex from './codex.mjs'
-import cursor from './cursor.mjs'
 import domainExpantion from './domain-expantion.mjs'
 
-export const HARNESSES = [domainExpantion, claudeCode, codex, cursor]
+export const HARNESSES = [domainExpantion]
 
 export const harnessById = (id) => HARNESSES.find((h) => h.id === id) || null
 
