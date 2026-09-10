@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Domain Expantion — planet</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; background: #05070c; font-family: "Segoe UI", system-ui, sans-serif; overflow: hidden; }
+    #hud {
+      position: absolute; left: 16px; top: 16px; z-index: 2; max-width: 360px;
+      color: #e8eefc; pointer-events: none;
+    }
+    #hud h1 { font-size: 15px; letter-spacing: .14em; text-transform: uppercase; margin: 0 0 6px; color: #9eb6ff; }
+    #hud p { margin: 0; font-size: 13px; line-height: 1.45; color: #b7c3d9; }
+    #panel {
+      position: absolute; right: 16px; top: 16px; z-index: 2; width: 300px;
+      background: rgba(10, 16, 28, .82); border: 1px solid #2a3a5c; border-radius: 10px;
+      padding: 14px 16px; color: #e8eefc; display: none;
+    }
+    #panel .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 99px; margin-bottom: 8px; }
+    #panel .live { background: #134e4a; color: #5eead4; }
+    #panel .stub { background: #1e293b; color: #94a3b8; }
+    #panel .planned { background: #111827; color: #64748b; }
+    #panel h2 { margin: 0 0 6px; font-size: 18px; }
+    #panel .meta { font-size: 12px; color: #8ba0c4; margin-bottom: 8px; }
+    #hint { position: absolute; bottom: 14px; left: 16px; color: #6b7c99; font-size: 12px; z-index: 2; }
+    canvas { display: block; }
+    .label {
+      color: #dbe7ff; font-size: 12px; text-shadow: 0 1px 4px #000;
+      white-space: nowrap; pointer-events: none; user-select: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    <h1>Domain Expantion</h1>
+    <p>Read-only view of the family. Drag to orbit. Click a plot.</p>
+  </div>
+  <div id="panel"></div>
+  <div id="hint">This planet does not start agents.</div>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+    import { CSS2DRenderer, CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
+
+    const COLORS = { live: 0x2dd4bf, stub: 0x64748b, planned: 0x334155, coordinator: 0xfbbf24 };
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x05070c, 0.035);
+    const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 200);
+    camera.position.set(0, 4.2, 9);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    document.body.appendChild(renderer.domElement);
+
+    const labels = new CSS2DRenderer();
+    labels.setSize(innerWidth, innerHeight);
+    labels.domElement.style.position = "absolute";
+    labels.domElement.style.top = "0";
+    labels.domElement.style.pointerEvents = "none";
+    document.body.appendChild(labels.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.minDistance = 6;
+    controls.maxDistance = 18;
+
+    scene.add(new THREE.AmbientLight(0x6b7c99, 0.55));
+    const sun = new THREE.DirectionalLight(0xffe6c8, 1.15);
+    sun.position.set(6, 8, 4);
+    scene.add(sun);
+
+    const stars = new THREE.Points(
+      new THREE.BufferGeometry().setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute(Array.from({ length: 1800 }, () => (Math.random() - 0.5) * 80), 3)
+      ),
+      new THREE.PointsMaterial({ color: 0x8aa0c8, size: 0.06 })
+    );
+    scene.add(stars);
+
+    const planet = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(3.1, 4),
+      new THREE.MeshStandardMaterial({ color: 0x1b3a4a, roughness: 0.85, metalness: 0.08, flatShading: true })
+    );
+    scene.add(planet);
+    scene.add(new THREE.Mesh(
+      new THREE.SphereGeometry(3.18, 32, 32),
+      new THREE.MeshBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.08 })
+    ));
+
+    const plots = [];
+    const ray = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    const panel = document.getElementById("panel");
+
+    function shapeFor(item) {
+      if (item.role === "coordinator") return new THREE.CapsuleGeometry(0.18, 0.42, 4, 8);
+      if (item.name === "research") return new THREE.SphereGeometry(0.28, 16, 12);
+      if (item.name === "architecture") return new THREE.ConeGeometry(0.28, 0.7, 5);
+      if (item.name === "code") return new THREE.BoxGeometry(0.38, 0.38, 0.38);
+      return new THREE.CylinderGeometry(0.22, 0.26, 0.4, 6);
+    }
+
+    function addInhabitant(item, index, total) {
+      const phi = Math.PI / 2.35;
+      const theta = (index / Math.max(total, 1)) * Math.PI * 2 - Math.PI / 2;
+      const r = 3.28;
+      const pos = new THREE.Vector3().setFromSphericalCoords(r, phi, theta);
+      const color = item.role === "coordinator" ? COLORS.coordinator : (COLORS[item.status] || COLORS.stub);
+      const mesh = new THREE.Mesh(
+        shapeFor(item),
+        new THREE.MeshStandardMaterial({ color, roughness: 0.45, metalness: 0.2, emissive: color, emissiveIntensity: item.status === "live" ? 0.22 : 0.04 })
+      );
+      mesh.position.copy(pos);
+      mesh.lookAt(0, 0, 0);
+      mesh.rotateX(Math.PI);
+      mesh.userData = item;
+      const pad = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.42, 0.42, 0.06, 6),
+        new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.7 })
+      );
+      pad.position.copy(pos.clone().multiplyScalar(0.97));
+      pad.lookAt(0, 0, 0);
+      pad.rotateX(Math.PI / 2);
+      scene.add(pad);
+      scene.add(mesh);
+      const el = document.createElement("div");
+      el.className = "label";
+      el.textContent = item.name;
+      const label = new CSS2DObject(el);
+      label.position.copy(pos.clone().multiplyScalar(1.12));
+      scene.add(label);
+      plots.push(mesh);
+    }
+
+    function show(item) {
+      panel.style.display = "block";
+      panel.innerHTML = `
+        <span class="badge ${item.status}">${item.status}</span>
+        <h2>${item.title}</h2>
+        <div class="meta">${item.role} · ${item.name}</div>
+        <p>${item.description}</p>
+        <p class="meta">${item.when_to_use}</p>
+      `;
+    }
+
+    renderer.domElement.addEventListener("click", (ev) => {
+      mouse.x = (ev.clientX / innerWidth) * 2 - 1;
+      mouse.y = -(ev.clientY / innerHeight) * 2 + 1;
+      ray.setFromCamera(mouse, camera);
+      const hit = ray.intersectObjects(plots)[0];
+      if (hit) show(hit.object.userData);
+    });
+
+    const data = await fetch("/api/family").then((r) => r.json());
+    data.inhabitants.forEach((item, i) => addInhabitant(item, i, data.inhabitants.length));
+
+    addEventListener("resize", () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+      labels.setSize(innerWidth, innerHeight);
+    });
+
+    (function tick() {
+      requestAnimationFrame(tick);
+      planet.rotation.y += 0.0012;
+      controls.update();
+      renderer.render(scene, camera);
+      labels.render(scene, camera);
+    })();
+  </script>
+</body>
+</html>

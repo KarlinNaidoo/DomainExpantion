@@ -38,6 +38,9 @@ Repository = "https://github.com/KarlinNaidoo/DomainExpantion"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+domain_expantion = ["planet/static/*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]

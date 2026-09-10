@@ -21,6 +21,9 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("db", help="Create checkpoint tables and verify Postgres (no LLM).")
     chat = sub.add_parser("chat", help="Talk to the supervisor.")
     chat.add_argument("--thread", default="local-default", help="Conversation thread id.")
+    planet = sub.add_parser("planet", help="Open a read-only 3D view of the family.")
+    planet.add_argument("--port", type=int, default=8765)
+    planet.add_argument("--no-open", action="store_true", help="Do not open a browser.")
 
     args = parser.parse_args(argv)
     if args.command == "agents":
@@ -29,6 +32,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_db()
     if args.command == "chat":
         return cmd_chat(args.thread)
+    if args.command == "planet":
+        return cmd_planet(args.port, open_browser=not args.no_open)
     parser.print_help()
     return 0
 
@@ -50,6 +55,26 @@ def _chat_turn(agent: Any, user: str, config: dict[str, Any]) -> None:
     reply = render_turn(chunks)
     if not reply:
         print("Supervisor: (no reply)")
+
+
+def cmd_planet(port: int, *, open_browser: bool = True) -> int:
+    import webbrowser
+
+    from domain_expantion.planet.server import serve_planet
+
+    httpd = serve_planet("127.0.0.1", port)
+    url = f"http://127.0.0.1:{port}/"
+    print(f"Planet (read-only) at {url}")
+    print("This view does not start agents. Ctrl+C to stop.")
+    if open_browser:
+        webbrowser.open(url)
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("\nPlanet closed.")
+    finally:
+        httpd.server_close()
+    return 0
 
 
 def cmd_db() -> int:
