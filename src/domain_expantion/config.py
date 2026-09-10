@@ -11,6 +11,9 @@ load_dotenv()
 DEFAULT_MODEL = "grok-4.6"
 DEFAULT_RUN_LIMIT = 8
 XAI_BASE_URL = "https://api.x.ai/v1"
+DEFAULT_DATABASE_URL = (
+    "postgresql://domain:domain@127.0.0.1:5433/domain_expantion?sslmode=disable"
+)
 
 
 def family_dir() -> Path:
@@ -30,6 +33,7 @@ class Settings:
     xai_api_key: str | None
     model: str
     run_limit: int
+    database_url: str
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -42,6 +46,7 @@ class Settings:
             xai_api_key=os.getenv("XAI_API_KEY") or None,
             model=os.getenv("XAI_MODEL", DEFAULT_MODEL),
             run_limit=max(1, run_limit),
+            database_url=os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL),
         )
 
     def require_api_key(self) -> str:
@@ -50,3 +55,12 @@ class Settings:
                 "XAI_API_KEY is not set. Copy .env.example to .env and add a key from https://console.x.ai"
             )
         return self.xai_api_key
+
+    def require_database_url(self) -> str:
+        if not self.database_url.strip():
+            raise RuntimeError(
+                "DATABASE_URL is empty. Copy .env.example to .env "
+                "or start Postgres with docker compose up -d"
+            )
+        return self.database_url
+

@@ -10,12 +10,14 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
 copy .env.example .env
-# put XAI_API_KEY in .env
+docker compose up -d
+# put XAI_API_KEY in .env when you want to chat
 ```
 
 ```powershell
 ruff check .
 pytest
+domain-expantion db
 domain-expantion agents
 domain-expantion chat
 ```
