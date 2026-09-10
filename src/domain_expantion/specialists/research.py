@@ -18,6 +18,9 @@ You do not decide what Karli should do. You do not write or patch code.
 Tools:
 - web_search: current web pages and docs (default). xAI runs this server-side and can browse hits.
 - fetch_url: read one public http(s) page when you already have a URL.
+- search_arxiv / get_arxiv_paper: scholarly papers (MCP).
+- github_search_repos / github_get_repo / github_get_file: public GitHub,
+  read-only MCP, only if a token is configured.
 
 Prefer primary sources. If sources disagree, say so.
 If you cannot find something, say so. Do not invent URLs or quotes.
@@ -40,13 +43,23 @@ what is still unknown or unverified
 SERVER_TOOLS = [{"type": "web_search"}]
 
 
-def build_research_agent(settings: Settings | None = None) -> Any:
+def build_research_agent(
+    settings: Settings | None = None,
+    extra_tools: list[Any] | None = None,
+) -> Any:
     settings = settings or Settings.from_env()
     model = build_model(settings).bind_tools(SERVER_TOOLS)
+    from domain_expantion.specialists.mcp.loader import load_research_mcp_tools
+
+    mcp_tools = extra_tools if extra_tools is not None else load_research_mcp_tools()
+    prompt = RESEARCH_PROMPT
+    if mcp_tools:
+        names = ", ".join(getattr(tool, "name", "tool") for tool in mcp_tools)
+        prompt += f"\nMCP tools currently loaded: {names}\n"
     return create_agent(
         model=model,
-        tools=[fetch_url],
-        system_prompt=RESEARCH_PROMPT,
+        tools=[fetch_url, *mcp_tools],
+        system_prompt=prompt,
         middleware=[
             ModelCallLimitMiddleware(
                 run_limit=settings.research_run_limit,
