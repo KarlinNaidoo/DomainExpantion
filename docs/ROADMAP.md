@@ -27,6 +27,11 @@ Move slowly. Do not skip a phase because a later one looks more fun.
 - Supervisor still has no web tools
 - HITL on anything irreversible (not needed for read-only research)
 
+## v0.3 — architecture specialist
+
+- [x] Live `architecture` pack: C4/Mermaid, ADRs, contracts, implementation slices for `code`
+- `code` still stub
+
 ## Later
 
 - More specialists (`code`, ops, markets)

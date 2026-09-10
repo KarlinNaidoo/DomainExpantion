@@ -136,9 +136,10 @@ _registry: Registry | None = None
 
 
 def _default_runners() -> dict[str, Callable[[str], str]]:
+    from domain_expantion.specialists.architecture import run as run_architecture
     from domain_expantion.specialists.research import run as run_research
 
-    return {"research": run_research}
+    return {"architecture": run_architecture, "research": run_research}
 
 
 def get_registry() -> Registry:

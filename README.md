@@ -11,7 +11,7 @@ The planet (if we build one later) is only a visual of this family. Agents do no
 - Supervisor on Grok (`grok-4.6` via SpaceXAI / xAI)
 - Two tools: `list_agents`, `delegate`
 - Family registry on disk (`family/*/SPEC.toml`)
-- Live specialist: `research` (web, fetch URL, arXiv MCP, optional GitHub MCP). Stub: `code`
+- Live specialists: `research`, `architecture` (design pack for `code`). Stub: `code`
 - CLI: `domain-expantion agents` and `domain-expantion chat` (tool calls stream as they happen)
 - Loop guard (max model calls per turn)
 - Postgres checkpointer via Docker Compose (threads survive restart)
