@@ -1,0 +1,5 @@
+name = "architecture"
+title = "Architecture specialist"
+status = "live"
+description = "Designs solution proposals and enterprise architecture packs the code specialist can implement end to end. Draws in Mermaid. Does not write production code."
+when_to_use = "When the work needs a design, C4/views, ADRs, contracts, or an implementation-ready pack before code is written."
