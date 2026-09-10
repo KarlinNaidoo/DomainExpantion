@@ -27,4 +27,5 @@ def test_prompt_is_policy_not_encyclopedia() -> None:
     assert "list_agents" in SUPERVISOR_PROMPT
     assert "delegate" in SUPERVISOR_PROMPT
     assert "Do not impersonate" in SUPERVISOR_PROMPT
+    assert "If a live specialist fits, delegate" in SUPERVISOR_PROMPT
     assert "dangerous or irreversible" in SUPERVISOR_PROMPT

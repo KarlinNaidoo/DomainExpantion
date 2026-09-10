@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tomllib
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -28,21 +29,31 @@ class UnknownAgentError(KeyError):
 
 
 class Registry:
-    def __init__(self, specs: dict[str, AgentSpec]) -> None:
+    def __init__(
+        self,
+        specs: dict[str, AgentSpec],
+        runners: dict[str, Callable[[str], str]] | None = None,
+    ) -> None:
         self._specs = specs
+        self._runners = runners if runners is not None else {}
 
     @classmethod
-    def load(cls, root: Path | None = None) -> Registry:
+    def load(
+        cls,
+        root: Path | None = None,
+        runners: dict[str, Callable[[str], str]] | None = None,
+    ) -> Registry:
         root = root or family_dir()
         specs: dict[str, AgentSpec] = {}
-        if not root.exists():
-            return cls(specs)
-        for spec_path in sorted(root.glob("*/SPEC.toml")):
-            if spec_path.parent.name.startswith("_"):
-                continue
-            spec = _load_spec(spec_path)
-            specs[spec.name] = spec
-        return cls(specs)
+        if root.exists():
+            for spec_path in sorted(root.glob("*/SPEC.toml")):
+                if spec_path.parent.name.startswith("_"):
+                    continue
+                spec = _load_spec(spec_path)
+                specs[spec.name] = spec
+        if runners is None:
+            runners = _default_runners()
+        return cls(specs, runners)
 
     def get(self, name: str) -> AgentSpec:
         key = name.strip().lower()
@@ -93,7 +104,13 @@ class Registry:
                 "show the brief you would have sent, and wait."
             )
 
-        raise NotImplementedError(f"Live specialist '{spec.name}' has no runtime yet.")
+        runner = self._runners.get(spec.name)
+        if runner is None:
+            return (
+                f"Live specialist '{spec.name}' has no runtime registered. "
+                "Do not impersonate it."
+            )
+        return runner(cleaned)
 
 
 def _load_spec(path: Path) -> AgentSpec:
@@ -116,6 +133,12 @@ def _load_spec(path: Path) -> AgentSpec:
 
 
 _registry: Registry | None = None
+
+
+def _default_runners() -> dict[str, Callable[[str], str]]:
+    from domain_expantion.specialists.research import run as run_research
+
+    return {"research": run_research}
 
 
 def get_registry() -> Registry:
