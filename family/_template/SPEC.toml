@@ -1,0 +1,5 @@
+name = "example"
+title = "Example specialist"
+status = "planned"
+description = "Copy this folder, rename it to the agent name, and fill in the fields. Folder name must match `name`."
+when_to_use = "Describe when the supervisor should delegate here."
