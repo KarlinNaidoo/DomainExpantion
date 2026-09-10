@@ -102,15 +102,6 @@ def cmd_db() -> int:
     return 0
 
 
-def cmd_db() -> int:
-    from domain_expantion.checkpointing import open_checkpointer
-
-    settings = Settings.from_env()
-    with open_checkpointer(settings):
-        print(f"Postgres checkpointer ready. {settings.database_url}")
-    return 0
-
-
 def cmd_chat(thread_id: str) -> int:
     from domain_expantion.checkpointing import open_checkpointer
     from domain_expantion.supervisor.agent import build_supervisor
