@@ -68,16 +68,21 @@ async function scanThreads() {
       archived: false,
       sizeBytes: size,
       source: item.role || 'specialist',
-      canOpen: false,
+      canOpen: true,
       ref: { name: item.name },
     }
   })
 }
 
-async function openThread() {
-  return { ok: false, error: 'Open domain-expantion chat in a terminal to talk to this agent.' }
+const CHAT = 'http://127.0.0.1:8766/chat.html'
+
+async function openThread(ref) {
+  const name = ref?.name || 'supervisor'
+  const thread = name === 'supervisor' ? 'colony-main' : `colony-${name}`
+  return { ok: true, url: `${CHAT}?thread=${encodeURIComponent(thread)}&agent=${encodeURIComponent(name)}` }
 }
 
 async function newSession() {
-  return { ok: false, error: 'New work starts in domain-expantion chat, not here.' }
+  const thread = `colony-${Date.now()}`
+  return { ok: true, url: `${CHAT}?thread=${encodeURIComponent(thread)}&agent=supervisor` }
 }

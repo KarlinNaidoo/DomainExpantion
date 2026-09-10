@@ -21,6 +21,9 @@ def install_overlay() -> None:
     dest.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(OVERLAY / "domain-expantion.mjs", dest / "domain-expantion.mjs")
     shutil.copyfile(OVERLAY / "index.mjs", dest / "index.mjs")
+    html = OVERLAY / "index.html"
+    if html.is_file():
+        shutil.copyfile(html, VENDOR / "index.html")
 
 
 def launch_bot_crossing(*, open_browser: bool = True, port: int = 5274) -> int:
@@ -28,6 +31,9 @@ def launch_bot_crossing(*, open_browser: bool = True, port: int = 5274) -> int:
         print("Bot Crossing is not vendored at vendor/bot-crossing.", file=sys.stderr)
         return 1
     install_overlay()
+    from domain_expantion.planet.chat_server import CHAT_PORT, start_chat_server_thread
+
+    start_chat_server_thread(CHAT_PORT)
     env = os.environ.copy()
     env["DOMAIN_EXPANTION_ROOT"] = str(REPO_ROOT)
     env["PORT"] = str(port)
@@ -40,8 +46,8 @@ def launch_bot_crossing(*, open_browser: bool = True, port: int = 5274) -> int:
         subprocess.run([npm, "install"], cwd=VENDOR, check=True, env=env)
     url = f"http://127.0.0.1:{port}/"
     print(f"Bot Crossing colony at {url}")
+    print("Chat panel: Open an astronaut or New conversation (supervisor).")
     print("Family snapshot: .data/planet-family.json")
-    print("Keep domain-expantion chat running in another window to see workers hammer.")
     if open_browser:
         webbrowser.open(url)
     return subprocess.call([npm, "run", "dev"], cwd=VENDOR, env=env)
