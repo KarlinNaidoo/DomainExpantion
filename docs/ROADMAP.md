@@ -23,6 +23,7 @@ Move slowly. Do not skip a phase because a later one looks more fun.
 
 - [x] Live `research` specialist with xAI `web_search` (no MCP yet)
 - [x] Research harness: agent loop, safe `fetch_url`, structured briefing
+- [x] Research MCP: arXiv (always), GitHub read-only (if `GITHUB_TOKEN`)
 - Supervisor still has no web tools
 - HITL on anything irreversible (not needed for read-only research)
 
