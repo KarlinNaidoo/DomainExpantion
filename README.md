@@ -15,6 +15,7 @@ The planet (if we build one later) is only a visual of this family. Agents do no
 - CLI: `domain-expantion agents` and `domain-expantion chat` (tool calls stream as they happen)
 - Loop guard (max model calls per turn)
 - Postgres checkpointer via Docker Compose (threads survive restart)
+- Colony view: `domain-expantion planet` launches [Bot Crossing](https://github.com/Station-Sciences/bot-crossing) with a Domain Expantion harness. Needs Node 22+.
 
 The supervisor can already converse, refuse to impersonate missing workers, and show the brief it *would* have sent.
 
@@ -37,9 +38,10 @@ pytest
 domain-expantion db
 domain-expantion agents
 domain-expantion chat
+domain-expantion planet
 ```
 
-`db` and `agents` do not need `XAI_API_KEY`. `chat` does. Threads persist in Postgres (host port **5433**).
+`db`, `agents`, and `planet` do not need `XAI_API_KEY`. `chat` does. Threads persist in Postgres (host port **5433**). The planet is a read-only view of the family.
 
 ## Layout
 

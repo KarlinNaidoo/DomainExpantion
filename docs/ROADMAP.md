@@ -36,4 +36,4 @@ Move slowly. Do not skip a phase because a later one looks more fun.
 
 - More specialists (`code`, ops, markets)
 - Human-in-the-loop middleware
-- Planet/presence UI that **reads** registry and run status only
+- [x] Planet/presence UI: Bot Crossing baseline + Domain Expantion harness (`domain-expantion planet`)
