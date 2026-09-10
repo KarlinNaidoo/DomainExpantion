@@ -110,6 +110,7 @@ class Registry:
                 f"Live specialist '{spec.name}' has no runtime registered. "
                 "Do not impersonate it."
             )
+        print(f"  … {spec.name} working (this can take a minute)", flush=True)
         return runner(cleaned)
 
 
