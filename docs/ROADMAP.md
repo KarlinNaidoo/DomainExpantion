@@ -22,6 +22,7 @@ Move slowly. Do not skip a phase because a later one looks more fun.
 ## v0.2 — first live specialist
 
 - [x] Live `research` specialist with xAI `web_search` (no MCP yet)
+- [x] Research harness: agent loop, safe `fetch_url`, structured briefing
 - Supervisor still has no web tools
 - HITL on anything irreversible (not needed for read-only research)
 
