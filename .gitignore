@@ -18,6 +18,9 @@ htmlcov/
 .env.*
 !.env.example
 .data/
+vendor/bot-crossing/node_modules/
+vendor/bot-crossing/data/
+vendor/bot-crossing/dist/
 *.sqlite3
 
 # OS / editor
