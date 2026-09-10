@@ -6,7 +6,6 @@ from typing import Any
 
 from domain_expantion import __version__
 from domain_expantion.config import Settings
-from domain_expantion.messages import message_text
 from domain_expantion.registry import Registry, get_registry, set_registry
 
 
@@ -37,6 +36,19 @@ def cmd_agents() -> int:
     return 0
 
 
+def _chat_turn(agent: Any, user: str, config: dict[str, Any]) -> None:
+    from domain_expantion.supervisor.stream import render_turn
+
+    chunks = agent.stream(
+        {"messages": [{"role": "user", "content": user}]},
+        config,
+        stream_mode="updates",
+    )
+    reply = render_turn(chunks)
+    if not reply:
+        print("Supervisor: (no reply)")
+
+
 def cmd_chat(thread_id: str) -> int:
     from domain_expantion.supervisor.agent import build_supervisor
 
@@ -48,6 +60,7 @@ def cmd_chat(thread_id: str) -> int:
     print(f"Domain Expantion supervisor v{__version__}")
     print(f"Model: {settings.model}  thread: {config['configurable']['thread_id']}")
     print("Type a message. /quit to exit. /agents to print the catalog.")
+    print("Tool calls stream as they happen.")
     print()
 
     while True:
@@ -65,7 +78,6 @@ def cmd_chat(thread_id: str) -> int:
             print(get_registry().render_catalog())
             continue
 
-        result = agent.invoke({"messages": [{"role": "user", "content": user}]}, config=config)
-        reply = message_text(result["messages"][-1])
-        print(f"Supervisor: {reply}\n")
+        _chat_turn(agent, user, config)
+        print()
     return 0

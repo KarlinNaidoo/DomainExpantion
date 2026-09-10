@@ -12,7 +12,7 @@ The planet (if we build one later) is only a visual of this family. Agents do no
 - Two tools: `list_agents`, `delegate`
 - Family registry on disk (`family/*/SPEC.toml`)
 - Stub specialists: `research`, `code` (registered, not live)
-- CLI: `domain-expantion agents` and `domain-expantion chat`
+- CLI: `domain-expantion agents` and `domain-expantion chat` (tool calls stream as they happen)
 - Loop guard (max model calls per turn)
 
 The supervisor can already converse, refuse to impersonate missing workers, and show the brief it *would* have sent.
