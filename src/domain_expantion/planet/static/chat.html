@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Domain Expantion chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; background: #0e1410; color: #e8f0e4; font-family: "Segoe UI", system-ui, sans-serif; }
+    #wrap { display: flex; flex-direction: column; height: 100%; }
+    header { padding: 10px 12px; border-bottom: 1px solid #2a3a2e; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: #9cbb8a; }
+    #log { flex: 1; overflow: auto; padding: 12px; font-size: 14px; line-height: 1.45; }
+    .you { color: #c9e4ff; margin: 10px 0 4px; }
+    .sup { color: #e8f0e4; margin: 4px 0 10px; white-space: pre-wrap; }
+    .tool { color: #fbbf24; font-family: ui-monospace, Consolas, monospace; font-size: 12px; white-space: pre-wrap; }
+    .err { color: #fca5a5; }
+    form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid #2a3a2e; }
+    input { flex: 1; background: #1a221c; border: 1px solid #3a4d3e; color: inherit; padding: 8px 10px; border-radius: 8px; }
+    button { background: #3f7a4a; border: 0; color: #fff; padding: 8px 14px; border-radius: 8px; cursor: pointer; }
+    button:disabled { opacity: .5; }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <header id="hdr">Supervisor</header>
+    <div id="log"></div>
+    <form id="f">
+      <input id="msg" autocomplete="off" placeholder="Message the supervisor…" />
+      <button type="submit">Send</button>
+    </form>
+  </div>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const agent = params.get("agent") || "supervisor";
+    const thread = params.get("thread") || ("colony-" + (agent === "supervisor" ? "main" : agent));
+    document.getElementById("hdr").textContent = "Supervisor · " + thread + (agent !== "supervisor" ? " · focus " + agent : "");
+    const log = document.getElementById("log");
+    const input = document.getElementById("msg");
+    const form = document.getElementById("f");
+    if (agent !== "supervisor") {
+      input.placeholder = "Ask the supervisor (can delegate to " + agent + ")…";
+    }
+    function add(cls, text) {
+      const el = document.createElement("div");
+      el.className = cls;
+      el.textContent = text;
+      log.appendChild(el);
+      log.scrollTop = log.scrollHeight;
+    }
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const message = input.value.trim();
+      if (!message) return;
+      input.value = "";
+      add("you", "You: " + message);
+      form.querySelector("button").disabled = true;
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ thread_id: thread, message }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const reader = res.body.getReader();
+        const dec = new TextDecoder();
+        let buf = "";
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          const lines = buf.split("\n");
+          buf = lines.pop() || "";
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            const ev = JSON.parse(line);
+            if (ev.kind === "tool_call") {
+              const args = Object.entries(ev.args || {}).map(([k,v]) => k + ": " + v).join(" | ");
+              add("tool", "→ " + ev.name + (args ? "  " + args : ""));
+            } else if (ev.kind === "tool_result") {
+              add("tool", "← " + ev.name + "\n" + (ev.text || ""));
+            } else if (ev.kind === "error") {
+              add("err", ev.text);
+            } else {
+              add("sup", "Supervisor: " + ev.text);
+            }
+          }
+        }
+      } catch (err) {
+        add("err", String(err));
+      }
+      form.querySelector("button").disabled = false;
+      input.focus();
+    });
+  </script>
+</body>
+</html>
