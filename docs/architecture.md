@@ -11,6 +11,7 @@ Domain Expantion is a personal agent family. The first live agent is the **super
 | Family registry | Who exists, when to use them, live vs stub | `family/*/SPEC.toml` |
 | Specialists | Domain work via MCP and tools | Stubs only (`research`, `code`) |
 | Observability | Traces and evals | Optional LangSmith env vars |
+| Persistence | Supervisor threads across CLI restarts | Postgres via Docker Compose (`PostgresSaver`) |
 | Planet | Visual presence | Out of scope. Never imported by the runtime |
 
 ## Supervisor contract
@@ -43,3 +44,12 @@ planet (future)        →  reads status, never starts an agent
 ```
 
 If the planet is closed, the family still runs.
+
+## Persistence
+
+Threads use LangGraph's Postgres checkpointer, not Entity Framework.
+
+Local: `docker compose up -d` publishes Postgres on **host port 5433** (avoids clashing with a local 5432). Default URL is in `.env.example`. The CLI command `domain-expantion db` creates checkpoint tables and does not call Grok.
+
+CI and unit tests keep `InMemorySaver`. They do not require Docker.
+
