@@ -15,7 +15,7 @@ Move slowly. Do not skip a phase because a later one looks more fun.
 ## v0.1 — talk to Karli better
 
 - Persistent checkpointer (SQLite) so threads survive restart
-- Clearer CLI streaming (tool names as they fire)
+- [x] Clearer CLI streaming (tool names as they fire)
 - Optional LangSmith traces
 - Prompt evals: trivia is not delegated; stubs are not impersonated
 
