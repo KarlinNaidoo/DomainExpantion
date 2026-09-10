@@ -3,12 +3,16 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import warnings
 from typing import Any
 
-from langchain.mcp import MCPAdapter
+from langchain_core._api.beta_decorator import LangChainBetaWarning
 
 from domain_expantion.specialists.mcp.arxiv_server import server as arxiv_server
 from domain_expantion.specialists.mcp.github_server import server as github_server
+
+warnings.filterwarnings("ignore", category=LangChainBetaWarning)
+from langchain.mcp import MCPAdapter  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
