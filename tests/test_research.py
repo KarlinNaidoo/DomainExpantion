@@ -37,6 +37,7 @@ def test_live_research_dispatches_runner(tmp_path) -> None:
 def test_research_prompt_requires_sources_and_gaps() -> None:
     assert "web_search" in RESEARCH_PROMPT
     assert "fetch_url" in RESEARCH_PROMPT
+    assert "search_arxiv" in RESEARCH_PROMPT
     assert "## Sources" in RESEARCH_PROMPT
     assert "## Gaps" in RESEARCH_PROMPT
     assert {"type": "web_search"} in SERVER_TOOLS

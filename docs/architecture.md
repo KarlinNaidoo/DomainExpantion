@@ -9,7 +9,7 @@ Domain Expantion is a personal agent family. The first live agent is the **super
 | Models | Think and call tools | Grok via SpaceXAI (`XAI_API_KEY`, `https://api.x.ai/v1`) |
 | Supervisor | Talk to Karli, decompose, route, synthesize, refuse | `create_agent` + `list_agents` + `delegate` |
 | Family registry | Who exists, when to use them, live vs stub | `family/*/SPEC.toml` |
-| Specialists | Domain work via tools/MCP | `research` live (`web_search`, `fetch_url`); `code` stub |
+| Specialists | Domain work via tools/MCP | `research` live (`web_search`, `fetch_url`, arXiv MCP, optional GitHub MCP); `code` stub |
 | Observability | Traces and evals | Optional LangSmith env vars |
 | Persistence | Supervisor threads across CLI restarts | Postgres via Docker Compose (`PostgresSaver`) |
 | Planet | Visual presence | Out of scope. Never imported by the runtime |
