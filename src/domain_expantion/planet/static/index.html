@@ -2,43 +2,48 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Domain Expantion — planet</title>
+  <title>Domain Expantion — colony</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root { color-scheme: dark; }
-    html, body { margin: 0; height: 100%; background: #05070c; font-family: "Segoe UI", system-ui, sans-serif; overflow: hidden; }
+    html, body { margin: 0; height: 100%; background: #7ec8e3; font-family: "Segoe UI", system-ui, sans-serif; overflow: hidden; }
     #hud {
-      position: absolute; left: 16px; top: 16px; z-index: 2; max-width: 360px;
-      color: #e8eefc; pointer-events: none;
+      position: absolute; left: 16px; top: 16px; z-index: 2; max-width: 380px;
+      color: #16324a; pointer-events: none;
     }
-    #hud h1 { font-size: 15px; letter-spacing: .14em; text-transform: uppercase; margin: 0 0 6px; color: #9eb6ff; }
-    #hud p { margin: 0; font-size: 13px; line-height: 1.45; color: #b7c3d9; }
+    #hud h1 { font-size: 14px; letter-spacing: .16em; text-transform: uppercase; margin: 0 0 6px; }
+    #hud p { margin: 0; font-size: 13px; line-height: 1.45; }
     #panel {
-      position: absolute; right: 16px; top: 16px; z-index: 2; width: 300px;
-      background: rgba(10, 16, 28, .82); border: 1px solid #2a3a5c; border-radius: 10px;
-      padding: 14px 16px; color: #e8eefc; display: none;
+      position: absolute; right: 16px; top: 16px; z-index: 2; width: 320px;
+      background: rgba(255,255,255,.9); border: 2px solid #2c4a3a; border-radius: 12px;
+      padding: 14px 16px; color: #16324a; display: none; box-shadow: 0 8px 24px rgba(0,0,0,.18);
     }
-    #panel .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 99px; margin-bottom: 8px; }
-    #panel .live { background: #134e4a; color: #5eead4; }
-    #panel .stub { background: #1e293b; color: #94a3b8; }
-    #panel .planned { background: #111827; color: #64748b; }
+    #panel .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 99px; margin: 0 4px 8px 0; }
+    #panel .live { background: #bbf7d0; }
+    #panel .stub { background: #e2e8f0; }
+    #panel .working { background: #fde68a; }
+    #panel .error { background: #fecaca; }
+    #panel .waiting { background: #ddd6fe; }
     #panel h2 { margin: 0 0 6px; font-size: 18px; }
-    #panel .meta { font-size: 12px; color: #8ba0c4; margin-bottom: 8px; }
-    #hint { position: absolute; bottom: 14px; left: 16px; color: #6b7c99; font-size: 12px; z-index: 2; }
+    #panel .meta { font-size: 12px; color: #4b6274; margin-bottom: 8px; }
+    #hint { position: absolute; bottom: 14px; left: 16px; color: #16324a; font-size: 12px; z-index: 2; }
     canvas { display: block; }
     .label {
-      color: #dbe7ff; font-size: 12px; text-shadow: 0 1px 4px #000;
-      white-space: nowrap; pointer-events: none; user-select: none;
+      color: #123; font-size: 13px; font-weight: 700; text-shadow: 0 1px 0 #fff, 0 0 6px #fff;
+      white-space: nowrap; pointer-events: none;
+    }
+    .balloon {
+      font-size: 22px; text-shadow: 0 2px 0 #0002; pointer-events: none;
     }
   </style>
 </head>
 <body>
   <div id="hud">
-    <h1>Domain Expantion</h1>
-    <p>Read-only view of the family. Drag to orbit. Click a plot.</p>
+    <h1>Domain Expantion colony</h1>
+    <p>Bot Crossing–style view of your family. Drag to look around. Click a worker. Keep <code>chat</code> running in another window to see them work.</p>
   </div>
   <div id="panel"></div>
-  <div id="hint">This planet does not start agents.</div>
+  <div id="hint">Read-only. Plots are agents, not chat threads.</div>
   <script type="importmap">
     {
       "imports": {
@@ -52,15 +57,29 @@
     import { OrbitControls } from "three/addons/controls/OrbitControls.js";
     import { CSS2DRenderer, CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
 
-    const COLORS = { live: 0x2dd4bf, stub: 0x64748b, planned: 0x334155, coordinator: 0xfbbf24 };
+    const HEX = 1.05;
+    const LAYOUT = {
+      supervisor: [0, -2],
+      research: [-2, 1],
+      architecture: [2, 1],
+      code: [0, 2],
+    };
+    const SUIT = {
+      supervisor: 0xfbbf24,
+      research: 0x38bdf8,
+      architecture: 0xa78bfa,
+      code: 0xfb7185,
+    };
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x05070c, 0.035);
-    const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 200);
-    camera.position.set(0, 4.2, 9);
+    scene.background = new THREE.Color(0x7ec8e3);
+    scene.fog = new THREE.Fog(0x9ad0e6, 18, 48);
+    const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 80);
+    camera.position.set(10, 12, 14);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(innerWidth, innerHeight);
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
     document.body.appendChild(renderer.domElement);
 
     const labels = new CSS2DRenderer();
@@ -72,86 +91,207 @@
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.minDistance = 6;
-    controls.maxDistance = 18;
+    controls.maxPolarAngle = Math.PI / 2.15;
+    controls.minDistance = 8;
+    controls.maxDistance = 28;
+    controls.target.set(0, 0.4, 0);
 
-    scene.add(new THREE.AmbientLight(0x6b7c99, 0.55));
-    const sun = new THREE.DirectionalLight(0xffe6c8, 1.15);
-    sun.position.set(6, 8, 4);
+    scene.add(new THREE.HemisphereLight(0xcae9ff, 0x6b8f4e, 1.05));
+    const sun = new THREE.DirectionalLight(0xfff4d6, 1.2);
+    sun.position.set(8, 14, 6);
+    sun.castShadow = true;
     scene.add(sun);
 
-    const stars = new THREE.Points(
-      new THREE.BufferGeometry().setAttribute(
-        "position",
-        new THREE.Float32BufferAttribute(Array.from({ length: 1800 }, () => (Math.random() - 0.5) * 80), 3)
-      ),
-      new THREE.PointsMaterial({ color: 0x8aa0c8, size: 0.06 })
+    const sea = new THREE.Mesh(
+      new THREE.CircleGeometry(22, 48),
+      new THREE.MeshStandardMaterial({ color: 0x3aa0c8, roughness: 0.35 })
     );
-    scene.add(stars);
+    sea.rotation.x = -Math.PI / 2;
+    sea.position.y = -0.22;
+    scene.add(sea);
 
-    const planet = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(3.1, 4),
-      new THREE.MeshStandardMaterial({ color: 0x1b3a4a, roughness: 0.85, metalness: 0.08, flatShading: true })
-    );
-    scene.add(planet);
-    scene.add(new THREE.Mesh(
-      new THREE.SphereGeometry(3.18, 32, 32),
-      new THREE.MeshBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.08 })
-    ));
-
-    const plots = [];
-    const ray = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-    const panel = document.getElementById("panel");
-
-    function shapeFor(item) {
-      if (item.role === "coordinator") return new THREE.CapsuleGeometry(0.18, 0.42, 4, 8);
-      if (item.name === "research") return new THREE.SphereGeometry(0.28, 16, 12);
-      if (item.name === "architecture") return new THREE.ConeGeometry(0.28, 0.7, 5);
-      if (item.name === "code") return new THREE.BoxGeometry(0.38, 0.38, 0.38);
-      return new THREE.CylinderGeometry(0.22, 0.26, 0.4, 6);
+    function axialToWorld(q, r) {
+      const x = HEX * Math.sqrt(3) * (q + r / 2);
+      const z = HEX * 1.5 * r;
+      return new THREE.Vector3(x, 0, z);
+    }
+    function hexShape(size) {
+      const s = new THREE.Shape();
+      for (let i = 0; i < 6; i++) {
+        const a = (Math.PI / 180) * (60 * i - 30);
+        const x = size * Math.cos(a);
+        const y = size * Math.sin(a);
+        i === 0 ? s.moveTo(x, y) : s.lineTo(x, y);
+      }
+      s.closePath();
+      return s;
+    }
+    function hexMesh(color, y = 0.04) {
+      const geo = new THREE.ExtrudeGeometry(hexShape(HEX * 0.96), { depth: 0.16, bevelEnabled: false });
+      geo.rotateX(-Math.PI / 2);
+      const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, roughness: 0.85 }));
+      mesh.position.y = y;
+      mesh.receiveShadow = true;
+      return mesh;
     }
 
-    function addInhabitant(item, index, total) {
-      const phi = Math.PI / 2.35;
-      const theta = (index / Math.max(total, 1)) * Math.PI * 2 - Math.PI / 2;
-      const r = 3.28;
-      const pos = new THREE.Vector3().setFromSphericalCoords(r, phi, theta);
-      const color = item.role === "coordinator" ? COLORS.coordinator : (COLORS[item.status] || COLORS.stub);
-      const mesh = new THREE.Mesh(
-        shapeFor(item),
-        new THREE.MeshStandardMaterial({ color, roughness: 0.45, metalness: 0.2, emissive: color, emissiveIntensity: item.status === "live" ? 0.22 : 0.04 })
+    const NEIGHBORS = [[1,0],[0,1],[-1,1],[-1,0],[0,-1],[1,-1]];
+    const ground = new THREE.Group();
+    const seen = new Set();
+    function plantHex(q, r, color) {
+      const key = q + "," + r;
+      if (seen.has(key)) return;
+      seen.add(key);
+      const tile = hexMesh(color);
+      const p = axialToWorld(q, r);
+      tile.position.x = p.x;
+      tile.position.z = p.z;
+      ground.add(tile);
+    }
+    for (let q = -6; q <= 6; q++) {
+      for (let r = -6; r <= 6; r++) {
+        if (Math.abs(q + r) > 6) continue;
+        plantHex(q, r, (q + r) % 2 === 0 ? 0x62a34a : 0x54963f);
+      }
+    }
+    scene.add(ground);
+
+    const plots = [];
+    const workers = {};
+    const panel = document.getElementById("panel");
+    const ray = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    function makeAstronaut(color) {
+      const g = new THREE.Group();
+      const body = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.18, 0.28, 4, 8),
+        new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.4 })
       );
-      mesh.position.copy(pos);
-      mesh.lookAt(0, 0, 0);
-      mesh.rotateX(Math.PI);
-      mesh.userData = item;
-      const pad = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.42, 0.42, 0.06, 6),
-        new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.7 })
+      body.position.y = 0.38;
+      body.castShadow = true;
+      const head = new THREE.Mesh(
+        new THREE.SphereGeometry(0.16, 12, 12),
+        new THREE.MeshStandardMaterial({ color: 0xf8fafc })
       );
-      pad.position.copy(pos.clone().multiplyScalar(0.97));
-      pad.lookAt(0, 0, 0);
-      pad.rotateX(Math.PI / 2);
-      scene.add(pad);
-      scene.add(mesh);
-      const el = document.createElement("div");
-      el.className = "label";
-      el.textContent = item.name;
-      const label = new CSS2DObject(el);
-      label.position.copy(pos.clone().multiplyScalar(1.12));
-      scene.add(label);
-      plots.push(mesh);
+      head.position.y = 0.68;
+      const visor = new THREE.Mesh(
+        new THREE.SphereGeometry(0.12, 12, 8, 0, Math.PI),
+        new THREE.MeshStandardMaterial({ color, metalness: 0.6, roughness: 0.2 })
+      );
+      visor.position.set(0, 0.68, 0.06);
+      visor.rotation.y = Math.PI;
+      const pack = new THREE.Mesh(
+        new THREE.BoxGeometry(0.2, 0.22, 0.1),
+        new THREE.MeshStandardMaterial({ color })
+      );
+      pack.position.set(0, 0.4, -0.14);
+      const armL = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.045, 0.22, 3, 6),
+        new THREE.MeshStandardMaterial({ color: 0xf8fafc })
+      );
+      armL.position.set(-0.2, 0.42, 0);
+      const armR = armL.clone();
+      armR.position.x = 0.2;
+      g.add(body, head, visor, pack, armL, armR);
+      g.userData.armR = armR;
+      g.userData.body = body;
+      return g;
+    }
+
+    function makeBuilding(name, live) {
+      const g = new THREE.Group();
+      const wood = new THREE.MeshStandardMaterial({ color: live ? 0xd6b07a : 0x94a3b8, roughness: 0.8 });
+      const roofC = new THREE.MeshStandardMaterial({ color: live ? 0xb45309 : 0x64748b, roughness: 0.6 });
+      if (name === "supervisor") {
+        const hull = new THREE.Mesh(new THREE.CapsuleGeometry(0.35, 0.7, 4, 10), new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.35 }));
+        hull.rotation.z = Math.PI / 2;
+        hull.position.y = 0.45;
+        const fin = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.35, 0.5), new THREE.MeshStandardMaterial({ color: 0xfbbf24 }));
+        fin.position.set(0, 0.55, -0.2);
+        g.add(hull, fin);
+      } else if (name === "research") {
+        const base = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 0.35, 8), wood);
+        base.position.y = 0.22;
+        const dome = new THREE.Mesh(new THREE.SphereGeometry(0.38, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0.7 }));
+        dome.position.y = 0.4;
+        g.add(base, dome);
+      } else if (name === "architecture") {
+        const tower = new THREE.Mesh(new THREE.ConeGeometry(0.42, 1.15, 5), roofC);
+        tower.position.y = 0.6;
+        g.add(tower);
+      } else {
+        const box = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.5, 0.7), wood);
+        box.position.y = 0.3;
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(0.58, 0.35, 4), roofC);
+        roof.position.y = 0.72;
+        roof.rotation.y = Math.PI / 4;
+        g.add(box, roof);
+      }
+      g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+      return g;
+    }
+
+    function zoneHexes(q, r) {
+      return [[q, r], ...NEIGHBORS.map(([dq, dr]) => [q + dq, r + dr])];
+    }
+
+    function addColony(item, index) {
+      const [q, r] = LAYOUT[item.name] || [index - 1, 2];
+      const origin = axialToWorld(q, r);
+      zoneHexes(q, r).forEach(([qq, rr], i) => {
+        const tile = hexMesh(i === 0 ? 0xc2a36b : 0x6eab52, 0.05);
+        const p = axialToWorld(qq, rr);
+        tile.position.x = p.x;
+        tile.position.z = p.z;
+        scene.add(tile);
+      });
+      const building = makeBuilding(item.name, item.status === "live");
+      building.position.set(origin.x, 0.08, origin.z);
+      const worker = makeAstronaut(SUIT[item.name] || 0x94a3b8);
+      worker.position.set(origin.x + 0.85, 0, origin.z + 0.35);
+      worker.userData.item = item;
+      worker.userData.origin = origin.clone();
+      const clicker = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.7, 0.7, 1.4, 8),
+        new THREE.MeshBasicMaterial({ visible: false })
+      );
+      clicker.position.set(origin.x, 0.5, origin.z);
+      clicker.userData.item = item;
+      const nameEl = document.createElement("div");
+      nameEl.className = "label";
+      nameEl.textContent = item.name;
+      const label = new CSS2DObject(nameEl);
+      label.position.set(origin.x, 1.35, origin.z);
+      const balloonEl = document.createElement("div");
+      balloonEl.className = "balloon";
+      const balloon = new CSS2DObject(balloonEl);
+      balloon.position.set(origin.x + 0.85, 1.15, origin.z + 0.35);
+      scene.add(building, worker, clicker, label, balloon);
+      const record = { item, worker, building, balloonEl, balloon, origin, clicker };
+      workers[item.name] = record;
+      plots.push(clicker, worker);
+    }
+
+    function applyState(item) {
+      const rec = workers[item.name];
+      if (!rec) return;
+      rec.item = item;
+      rec.clicker.userData.item = item;
+      const st = item.run_state || "idle";
+      rec.balloonEl.textContent = st === "working" ? "⚒" : st === "waiting" ? "?" : st === "error" ? "!" : "";
     }
 
     function show(item) {
       panel.style.display = "block";
       panel.innerHTML = `
         <span class="badge ${item.status}">${item.status}</span>
+        <span class="badge ${item.run_state || "idle"}">${item.run_state || "idle"}</span>
         <h2>${item.title}</h2>
         <div class="meta">${item.role} · ${item.name}</div>
         <p>${item.description}</p>
         <p class="meta">${item.when_to_use}</p>
+        ${item.run_detail ? `<p class="meta">now: ${item.run_detail}</p>` : ""}
       `;
     }
 
@@ -159,12 +299,23 @@
       mouse.x = (ev.clientX / innerWidth) * 2 - 1;
       mouse.y = -(ev.clientY / innerHeight) * 2 + 1;
       ray.setFromCamera(mouse, camera);
-      const hit = ray.intersectObjects(plots)[0];
-      if (hit) show(hit.object.userData);
+      const hit = ray.intersectObjects(plots, true)[0];
+      if (!hit) return;
+      let obj = hit.object;
+      while (obj && !obj.userData.item) obj = obj.parent;
+      if (obj?.userData.item) show(obj.userData.item);
     });
 
-    const data = await fetch("/api/family").then((r) => r.json());
-    data.inhabitants.forEach((item, i) => addInhabitant(item, i, data.inhabitants.length));
+    async function refresh() {
+      const data = await fetch("/api/family", { cache: "no-store" }).then((r) => r.json());
+      for (const item of data.inhabitants) {
+        if (!workers[item.name]) addColony(item, Object.keys(workers).length);
+        applyState(item);
+      }
+    }
+
+    await refresh();
+    setInterval(refresh, 1200);
 
     addEventListener("resize", () => {
       camera.aspect = innerWidth / innerHeight;
@@ -173,9 +324,32 @@
       labels.setSize(innerWidth, innerHeight);
     });
 
+    const clock = new THREE.Clock();
     (function tick() {
       requestAnimationFrame(tick);
-      planet.rotation.y += 0.0012;
+      const t = clock.getElapsedTime();
+      for (const rec of Object.values(workers)) {
+        const st = rec.item.run_state || "idle";
+        const arm = rec.worker.userData.armR;
+        const body = rec.worker.userData.body;
+        if (st === "working") {
+          arm.rotation.x = Math.sin(t * 14) * 1.1;
+          rec.worker.position.y = 0.04 + Math.abs(Math.sin(t * 10)) * 0.05;
+          rec.building.rotation.y = Math.sin(t * 3) * 0.03;
+        } else if (st === "error") {
+          rec.worker.rotation.z = -0.35;
+          arm.rotation.x = 0;
+        } else if (rec.item.status !== "live") {
+          rec.worker.rotation.x = 0.15;
+          rec.worker.position.y = 0;
+          arm.rotation.x = 0.4;
+        } else {
+          rec.worker.rotation.z = 0;
+          rec.worker.rotation.x = 0;
+          rec.worker.position.y = Math.sin(t * 2 + rec.origin.x) * 0.03;
+          arm.rotation.x = 0;
+        }
+      }
       controls.update();
       renderer.render(scene, camera);
       labels.render(scene, camera);

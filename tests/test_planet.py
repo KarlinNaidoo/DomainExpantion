@@ -25,6 +25,34 @@ def test_planet_payload_includes_supervisor_and_specs(tmp_path) -> None:
     assert payload["note"].startswith("Visual only")
     research = next(item for item in payload["inhabitants"] if item["name"] == "research")
     assert research["status"] == "live"
+    assert research["run_state"] == "idle"
+
+
+def test_family_snapshot_is_written(tmp_path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    from domain_expantion.planet.state import snapshot_path, write_family_snapshot
+    from domain_expantion.registry import Registry
+
+    folder = tmp_path / "code"
+    folder.mkdir()
+    (folder / "SPEC.toml").write_text(
+        'name = "code"\ntitle = "Code"\nstatus = "stub"\nwhen_to_use = "code"\n',
+        encoding="utf-8",
+    )
+    path = write_family_snapshot(Registry.load(tmp_path, runners={}))
+    assert path == snapshot_path()
+    data = json.loads(path.read_text(encoding="utf-8"))
+    assert any(item["name"] == "code" for item in data["inhabitants"])
+
+
+def test_activity_roundtrip(tmp_path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    from domain_expantion.planet.activity import load_activity, set_activity
+
+    set_activity("architecture", "working", "Design a site")
+    data = load_activity()
+    assert data["architecture"]["state"] == "working"
+    assert "Design" in data["architecture"]["detail"]
 
 
 def test_planet_http_serves_family_json() -> None:

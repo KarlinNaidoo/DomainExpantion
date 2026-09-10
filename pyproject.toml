@@ -39,7 +39,7 @@ Repository = "https://github.com/KarlinNaidoo/DomainExpantion"
 where = ["src"]
 
 [tool.setuptools.package-data]
-domain_expantion = ["planet/static/*"]
+domain_expantion = ["planet/static/*", "planet/bot_crossing/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

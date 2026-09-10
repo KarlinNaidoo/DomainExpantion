@@ -15,7 +15,7 @@ The planet (if we build one later) is only a visual of this family. Agents do no
 - CLI: `domain-expantion agents` and `domain-expantion chat` (tool calls stream as they happen)
 - Loop guard (max model calls per turn)
 - Postgres checkpointer via Docker Compose (threads survive restart)
-- Read-only planet view: `domain-expantion planet`
+- Colony view: `domain-expantion planet` launches [Bot Crossing](https://github.com/Station-Sciences/bot-crossing) with a Domain Expantion harness. Needs Node 22+.
 
 The supervisor can already converse, refuse to impersonate missing workers, and show the brief it *would* have sent.
 

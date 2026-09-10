@@ -45,26 +45,42 @@ def cmd_agents() -> int:
 
 
 def _chat_turn(agent: Any, user: str, config: dict[str, Any]) -> None:
+    from domain_expantion.planet.activity import set_activity
     from domain_expantion.supervisor.stream import render_turn
 
-    chunks = agent.stream(
-        {"messages": [{"role": "user", "content": user}]},
-        config,
-        stream_mode="updates",
-    )
-    reply = render_turn(chunks)
-    if not reply:
-        print("Supervisor: (no reply)")
+    set_activity("supervisor", "working", user)
+    try:
+        chunks = agent.stream(
+            {"messages": [{"role": "user", "content": user}]},
+            config,
+            stream_mode="updates",
+        )
+        reply = render_turn(chunks)
+        if not reply:
+            print("Supervisor: (no reply)")
+    except Exception:
+        set_activity("supervisor", "error", "chat turn failed")
+        raise
+    else:
+        set_activity("supervisor", "idle")
 
 
 def cmd_planet(port: int, *, open_browser: bool = True) -> int:
     import webbrowser
 
+    from domain_expantion.planet.colony import bot_crossing_available, launch_bot_crossing
     from domain_expantion.planet.server import serve_planet
+    from domain_expantion.planet.state import write_family_snapshot
+
+    set_registry(Registry.load())
+    write_family_snapshot()
+    if bot_crossing_available():
+        colony_port = 5274 if port == 8765 else port
+        return launch_bot_crossing(open_browser=open_browser, port=colony_port)
 
     httpd = serve_planet("127.0.0.1", port)
     url = f"http://127.0.0.1:{port}/"
-    print(f"Planet (read-only) at {url}")
+    print(f"Fallback planet (read-only) at {url}")
     print("This view does not start agents. Ctrl+C to stop.")
     if open_browser:
         webbrowser.open(url)
@@ -91,6 +107,9 @@ def cmd_chat(thread_id: str) -> int:
     from domain_expantion.supervisor.agent import build_supervisor
 
     set_registry(Registry.load())
+    from domain_expantion.planet.state import write_family_snapshot
+
+    write_family_snapshot()
     settings = Settings.from_env()
     config: dict[str, Any] = {"configurable": {"thread_id": thread_id or str(uuid.uuid4())}}
 

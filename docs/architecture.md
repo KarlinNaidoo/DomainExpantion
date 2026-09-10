@@ -12,7 +12,7 @@ Domain Expantion is a personal agent family. The first live agent is the **super
 | Specialists | Domain work via tools/MCP | `research` live; `architecture` live (Mermaid, ADRs, contracts, slices); `code` stub |
 | Observability | Traces and evals | Optional LangSmith env vars |
 | Persistence | Supervisor threads across CLI restarts | Postgres via Docker Compose (`PostgresSaver`) |
-| Planet | Visual presence | Read-only Three.js view (`domain-expantion planet`). Never starts an agent. |
+| Planet | Visual presence | Bot Crossing in `vendor/bot-crossing` plus our harness adapter. Snapshot `.data/planet-family.json`. Never starts an agent. |
 
 ## Supervisor contract
 
