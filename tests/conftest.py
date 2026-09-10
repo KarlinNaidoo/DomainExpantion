@@ -40,7 +40,7 @@ when_to_use = "When the work is source code."
 
 @pytest.fixture
 def registry(family_root: Path) -> Registry:
-    loaded = Registry.load(family_root)
+    loaded = Registry.load(family_root, runners={})
     set_registry(loaded)
     yield loaded
     set_registry(None)

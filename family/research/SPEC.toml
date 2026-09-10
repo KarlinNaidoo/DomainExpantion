@@ -1,5 +1,5 @@
 name = "research"
 title = "Research specialist"
-status = "stub"
+status = "live"
 description = "Looks up facts, reads sources, and returns a cited briefing. Does not decide what Karli should do."
 when_to_use = "When incoming work needs facts, sources, or a survey before the supervisor can plan or answer."

@@ -21,9 +21,9 @@ Move slowly. Do not skip a phase because a later one looks more fun.
 
 ## v0.2 — first live specialist
 
-- One real worker (likely `research`) with its own MCP/tools
+- [x] Live `research` specialist with xAI `web_search` (no MCP yet)
 - Supervisor still has no web tools
-- HITL on anything irreversible
+- HITL on anything irreversible (not needed for read-only research)
 
 ## Later
 
