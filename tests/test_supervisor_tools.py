@@ -28,4 +28,6 @@ def test_prompt_is_policy_not_encyclopedia() -> None:
     assert "delegate" in SUPERVISOR_PROMPT
     assert "Do not impersonate" in SUPERVISOR_PROMPT
     assert "If a live specialist fits, delegate" in SUPERVISOR_PROMPT
+    assert "architecture" in SUPERVISOR_PROMPT
+    assert "`code` is still a stub" in SUPERVISOR_PROMPT
     assert "dangerous or irreversible" in SUPERVISOR_PROMPT
