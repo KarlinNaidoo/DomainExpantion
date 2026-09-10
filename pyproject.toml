@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "domain-expantion"
+version = "0.1.0"
+description = "Personal AI agent family: a lightweight supervisor that delegates to specialists."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Karlin Naidoo" }]
+dependencies = [
+    "langchain>=1.0.0",
+    "langchain-xai>=1.0.0",
+    "langgraph>=1.0.0",
+    "python-dotenv>=1.0.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.9",
+]
+
+[project.scripts]
+domain-expantion = "domain_expantion.cli:main"
+
+[project.urls]
+Repository = "https://github.com/KarlinNaidoo/DomainExpantion"
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
