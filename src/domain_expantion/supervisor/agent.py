@@ -15,7 +15,7 @@ from domain_expantion.supervisor.tools import delegate, list_agents
 def build_supervisor(
     settings: Settings | None = None,
     *,
-    checkpointer: InMemorySaver | None = None,
+    checkpointer: Any | None = None,
 ) -> Any:
     settings = settings or Settings.from_env()
     return create_agent(
