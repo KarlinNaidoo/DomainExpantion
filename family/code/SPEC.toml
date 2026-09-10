@@ -1,0 +1,5 @@
+name = "code"
+title = "Code specialist"
+status = "stub"
+description = "Works in local repositories: read, patch, test. Does not push or deploy without later HITL."
+when_to_use = "When the work is about source code, tests, or a repo on this machine."
