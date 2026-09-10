@@ -3,7 +3,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from domain_expantion.registry import Registry
-from domain_expantion.specialists.research import run
+from domain_expantion.specialists.research import RESEARCH_PROMPT, SERVER_TOOLS, run
 
 
 class _FakeModel:
@@ -32,6 +32,14 @@ def test_live_research_dispatches_runner(tmp_path) -> None:
     registry = Registry.load(tmp_path, runners={"research": lambda brief: f"RAN:{brief}"})
     result = registry.invoke("research", "Survey interrupts.")
     assert result == "RAN:Survey interrupts."
+
+
+def test_research_prompt_requires_sources_and_gaps() -> None:
+    assert "web_search" in RESEARCH_PROMPT
+    assert "fetch_url" in RESEARCH_PROMPT
+    assert "## Sources" in RESEARCH_PROMPT
+    assert "## Gaps" in RESEARCH_PROMPT
+    assert {"type": "web_search"} in SERVER_TOOLS
 
 
 def test_live_without_runner_does_not_impersonate(tmp_path) -> None:
