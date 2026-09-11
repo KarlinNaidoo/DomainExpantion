@@ -35,8 +35,15 @@ function openChat(ref, isNew) {
     "&agent=" +
     encodeURIComponent(name);
   const el = panel();
-  document.getElementById("de-chat-frame").src = url;
+  const frame = document.getElementById("de-chat-frame");
   el.style.display = "flex";
+  try {
+    const current = new URL(frame.src || url);
+    if (!isNew && current.searchParams.get("thread") === thread) return;
+  } catch {
+    /* first open */
+  }
+  frame.src = url;
 }
 
 const orig = window.fetch.bind(window);

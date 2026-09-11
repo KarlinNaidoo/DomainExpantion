@@ -5,11 +5,13 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from domain_expantion.checkpointing import open_checkpointer
 from domain_expantion.config import Settings
+from domain_expantion.messages import message_text
 from domain_expantion.planet.activity import set_activity
+from domain_expantion.planet.chats import list_chats, record_chat
 from domain_expantion.registry import Registry, set_registry
 from domain_expantion.supervisor.agent import build_supervisor
 from domain_expantion.supervisor.stream import events_from_update
@@ -26,13 +28,16 @@ def start_chat_runtime() -> None:
     with _runtime_lock:
         if _runtime.get("agent"):
             return
-        set_registry(Registry.load())
-        settings = Settings.from_env()
-        cm = open_checkpointer(settings)
-        checkpointer = cm.__enter__()
-        _runtime["cm"] = cm
-        _runtime["settings"] = settings
-        _runtime["agent"] = build_supervisor(settings, checkpointer=checkpointer)
+        try:
+            set_registry(Registry.load())
+            settings = Settings.from_env()
+            cm = open_checkpointer(settings)
+            checkpointer = cm.__enter__()
+            _runtime["cm"] = cm
+            _runtime["settings"] = settings
+            _runtime["agent"] = build_supervisor(settings, checkpointer=checkpointer)
+        except Exception:
+            _runtime["agent"] = None
 
 
 def _event_payload(event: Any) -> dict[str, Any]:
@@ -72,11 +77,43 @@ def stream_turn(thread_id: str, message: str):
                     yield _event_payload(event)
             if not reply:
                 yield {"kind": "reply", "name": "", "args": {}, "text": "(no reply)"}
+            if thread_id.startswith("colony-"):
+                focus = thread_id.removeprefix("colony-")
+            else:
+                focus = "supervisor"
+            if focus in {"main"} or len(focus) > 48:
+                focus = "supervisor"
+            record_chat(thread_id, agent=focus, preview=message)
         except Exception as exc:
             set_activity("supervisor", "error", "chat turn failed")
             yield {"kind": "error", "name": "", "args": {}, "text": str(exc)}
             return
         set_activity("supervisor", "idle")
+
+
+def history_for_thread(thread_id: str) -> list[dict[str, Any]]:
+    start_chat_runtime()
+    agent = _runtime.get("agent")
+    if agent is None:
+        return []
+    config = {"configurable": {"thread_id": thread_id}}
+    try:
+        snap = agent.get_state(config)
+    except Exception:
+        return []
+    values = getattr(snap, "values", None) or {}
+    messages = values.get("messages") or []
+    events: list[dict[str, Any]] = []
+    for msg in messages:
+        msg_type = getattr(msg, "type", None) or type(msg).__name__.lower()
+        if msg_type in {"human", "humanmessage"}:
+            text = message_text(msg).strip()
+            if text:
+                events.append({"kind": "user", "name": "", "args": {}, "text": text})
+            continue
+        for event in events_from_update({"history": {"messages": [msg]}}):
+            events.append(_event_payload(event))
+    return events
 
 
 class ChatHandler(BaseHTTPRequestHandler):
@@ -118,6 +155,29 @@ class ChatHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self._cors()
             self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        if parsed.path == "/api/history":
+            qs = parse_qs(parsed.query)
+            thread_id = (qs.get("thread_id") or ["colony-default"])[0]
+            payload = {"thread_id": thread_id, "events": history_for_thread(thread_id)}
+            body = json.dumps(payload).encode("utf-8")
+            self.send_response(200)
+            self._cors()
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        if parsed.path == "/api/chats":
+            body = json.dumps({"chats": list_chats()}).encode("utf-8")
+            self.send_response(200)
+            self._cors()
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)

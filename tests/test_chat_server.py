@@ -23,6 +23,12 @@ def test_chat_health_and_page() -> None:
             js = resp.read().decode("utf-8")
         assert "/api/open" in js
         assert "domain-expantion" in js
+        with urlopen(f"http://127.0.0.1:{port}/api/chats") as resp:
+            catalog = json.loads(resp.read().decode("utf-8"))
+        assert "chats" in catalog
+        with urlopen(f"http://127.0.0.1:{port}/api/history?thread_id=missing") as resp:
+            hist = json.loads(resp.read().decode("utf-8"))
+        assert hist["events"] == [] or isinstance(hist["events"], list)
     finally:
         httpd.shutdown()
         httpd.server_close()

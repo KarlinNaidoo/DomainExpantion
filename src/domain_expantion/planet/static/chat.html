@@ -8,7 +8,9 @@
     :root { color-scheme: dark; }
     html, body { margin: 0; height: 100%; background: #0e1410; color: #e8f0e4; font-family: "Segoe UI", system-ui, sans-serif; }
     #wrap { display: flex; flex-direction: column; height: 100%; }
-    header { padding: 10px 12px; border-bottom: 1px solid #2a3a2e; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: #9cbb8a; }
+    header { padding: 10px 12px; border-bottom: 1px solid #2a3a2e; font-size: 12px; color: #9cbb8a; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    header .title { letter-spacing: .12em; text-transform: uppercase; }
+    select { background: #1a221c; border: 1px solid #3a4d3e; color: inherit; padding: 4px 6px; border-radius: 6px; max-width: 160px; }
     #log { flex: 1; overflow: auto; padding: 12px; font-size: 14px; line-height: 1.45; }
     .you { color: #c9e4ff; margin: 10px 0 4px; }
     .sup { color: #e8f0e4; margin: 4px 0 10px; white-space: pre-wrap; }
@@ -22,7 +24,10 @@
 </head>
 <body>
   <div id="wrap">
-    <header id="hdr">Supervisor</header>
+    <header>
+      <span class="title" id="hdr">Supervisor</span>
+      <select id="chats" title="Resume a conversation"><option value="">Recent chats</option></select>
+    </header>
     <div id="log"></div>
     <form id="f">
       <input id="msg" autocomplete="off" placeholder="Message the supervisor…" />
@@ -39,6 +44,15 @@
     const form = document.getElementById("f");
     if (agent !== "supervisor") {
       input.placeholder = "Ask the supervisor (can delegate to " + agent + ")…";
+    }
+    function renderEvent(ev) {
+      if (ev.kind === "user") add("you", "You: " + ev.text);
+      else if (ev.kind === "tool_call") {
+        const args = Object.entries(ev.args || {}).map(([k,v]) => k + ": " + v).join(" | ");
+        add("tool", "→ " + ev.name + (args ? "  " + args : ""));
+      } else if (ev.kind === "tool_result") add("tool", "← " + ev.name + "\n" + (ev.text || ""));
+      else if (ev.kind === "error") add("err", ev.text);
+      else add("sup", "Supervisor: " + ev.text);
     }
     function add(cls, text) {
       const el = document.createElement("div");
@@ -72,17 +86,7 @@
           buf = lines.pop() || "";
           for (const line of lines) {
             if (!line.trim()) continue;
-            const ev = JSON.parse(line);
-            if (ev.kind === "tool_call") {
-              const args = Object.entries(ev.args || {}).map(([k,v]) => k + ": " + v).join(" | ");
-              add("tool", "→ " + ev.name + (args ? "  " + args : ""));
-            } else if (ev.kind === "tool_result") {
-              add("tool", "← " + ev.name + "\n" + (ev.text || ""));
-            } else if (ev.kind === "error") {
-              add("err", ev.text);
-            } else {
-              add("sup", "Supervisor: " + ev.text);
-            }
+            renderEvent(JSON.parse(line));
           }
         }
       } catch (err) {
@@ -91,6 +95,33 @@
       form.querySelector("button").disabled = false;
       input.focus();
     });
+    (async () => {
+      try {
+        const hist = await fetch("/api/history?thread_id=" + encodeURIComponent(thread)).then((r) => r.json());
+        (hist.events || []).forEach(renderEvent);
+        if (!(hist.events || []).length) add("tool", "This thread is empty so far.");
+      } catch (err) {
+        add("err", "Could not load history: " + err);
+      }
+      try {
+        const data = await fetch("/api/chats").then((r) => r.json());
+        const sel = document.getElementById("chats");
+        for (const chat of data.chats || []) {
+          const opt = document.createElement("option");
+          opt.value = chat.thread_id;
+          opt.textContent = (chat.preview || chat.thread_id).slice(0, 40);
+          if (chat.thread_id === thread) opt.selected = true;
+          sel.appendChild(opt);
+        }
+        sel.onchange = () => {
+          const id = sel.value;
+          if (!id || id === thread) return;
+          location.search = "?thread=" + encodeURIComponent(id) + "&agent=" + encodeURIComponent(agent);
+        };
+      } catch {
+        /* no catalog yet */
+      }
+    })();
   </script>
 </body>
 </html>
