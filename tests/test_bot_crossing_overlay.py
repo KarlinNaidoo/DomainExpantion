@@ -19,3 +19,19 @@ def test_overlay_registers_only_domain_expantion() -> None:
     assert "cursor" not in text
     assert "codex" not in text
     assert "HARNESSES = [domainExpantion]" in text
+
+
+def test_research_lives_on_its_own_campus() -> None:
+    adapter = (
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "domain_expantion"
+        / "planet"
+        / "bot_crossing"
+        / "domain-expantion.mjs"
+    )
+    text = adapter.read_text(encoding="utf-8")
+    assert "Research Center" in text
+    assert "Architecture Studio" in text
+    assert "Code Works" in text
+    assert "campusFor" in text

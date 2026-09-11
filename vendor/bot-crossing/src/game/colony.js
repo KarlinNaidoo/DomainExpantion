@@ -48,6 +48,27 @@ const LIVE_GROWTH = 0.004
 /** How many zones' positions to remember, including repos with nothing running in them. */
 const LAYOUT_MEMORY = 80
 
+/** Domain Expantion specialist campuses: a full hex flower each. */
+const CAMPUS_HEXES = {
+  DomainExpantion: 7,
+  'Research Center': 7,
+  'Architecture Studio': 7,
+  'Code Works': 7,
+}
+
+function campusHexes(name) {
+  return CAMPUS_HEXES[name] || 1
+}
+
+function campusBuildingKind(thread) {
+  if (thread.id === 'domain-expantion:research' || thread.project === 'Research Center') return 'lab'
+  if (thread.id === 'domain-expantion:architecture' || thread.project === 'Architecture Studio') {
+    return 'tower'
+  }
+  if (thread.id === 'domain-expantion:code' || thread.project === 'Code Works') return 'workshop'
+  return null
+}
+
 export const STATUS_ORDER = ['blocked', 'waiting', 'working', 'celebrating', 'idle', 'sleeping']
 
 export const STATUS_LABEL = {
@@ -377,7 +398,10 @@ export class Colony {
     // — never because a different repo gained or lost a thread. `plotCells` carries it
     // between polls, and the colony file carries it between sessions.
     const layout = allocateCells(
-      projects.map(([name, list]) => ({ id: name, size: list.length })),
+      projects.map(([name, list]) => ({
+        id: name,
+        size: Math.max(list.length, campusHexes(name)),
+      })),
       this.plotCells
     )
     // Remembered, not replaced: a project that has just lost its last thread keeps its
@@ -474,7 +498,11 @@ export class Colony {
     const target = 1
 
     if (!entry) {
-      const mesh = createBuilding({ seed: hashString(thread.id), accent: plot.accent })
+      const mesh = createBuilding({
+        seed: hashString(thread.id),
+        accent: plot.accent,
+        kind: campusBuildingKind(thread),
+      })
       const pos = plot.worldSlot(index)
       mesh.position.copy(pos)
       mesh.rotation.y = ((hashString(thread.id) >>> 8) % 360) * (Math.PI / 180)

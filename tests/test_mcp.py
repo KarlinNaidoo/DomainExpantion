@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from domain_expantion.specialists.mcp.arxiv_server import search_arxiv_text
 from domain_expantion.specialists.mcp.arxiv_server import server as arxiv_server
 from domain_expantion.specialists.mcp.github_server import server as github_server
-from domain_expantion.specialists.mcp.loader import _list_tools
+from domain_expantion.specialists.mcp.loader import _list_tools, as_sync_tool
 from domain_expantion.specialists.research import RESEARCH_PROMPT
 
 
@@ -15,6 +15,26 @@ def test_research_prompt_mentions_mcp_apis() -> None:
     assert "search_arxiv" in RESEARCH_PROMPT
     assert "github_search_repos" in RESEARCH_PROMPT
     assert "web_search" in RESEARCH_PROMPT
+
+
+def test_async_mcp_tool_can_run_sync() -> None:
+    from pydantic import BaseModel
+
+    class PingIn(BaseModel):
+        q: str = ""
+
+    class Fake:
+        name = "ping"
+        description = "ping the fake tool"
+        args_schema = PingIn
+
+        async def ainvoke(self, payload, config=None):
+            return f"pong:{payload}"
+
+    tool = as_sync_tool(Fake())
+    result = tool.invoke({"q": "hi"})
+    assert "pong:" in result
+    assert "hi" in result
 
 
 def test_arxiv_mcp_lists_search_tools() -> None:

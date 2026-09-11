@@ -41,15 +41,14 @@ async function scanThreads() {
     const run = item.run_state || 'idle'
     const rawTs = Number(item.run_ts)
     const ts = !rawTs ? now : rawTs > 1e12 ? rawTs : rawTs * 1000
-    const live = item.status === 'live'
-    const size =
-      run === 'working' ? 80_000 : live ? 40_000 : 4_000
+    const campus = campusFor(item)
+    const size = campusSizeBytes(item, run)
     return {
       id: `domain-expantion:${item.name}`,
       harness: 'domain-expantion',
       title: item.title || item.name,
       preview: item.run_detail || item.when_to_use || '',
-      project: 'DomainExpantion',
+      project: campus,
       projectPath,
       worktree: '',
       cwd: projectPath,
@@ -72,6 +71,25 @@ async function scanThreads() {
       ref: { name: item.name },
     }
   })
+}
+
+const CAMPUSES = {
+  research: { project: 'Research Center', bytes: 220_000 },
+  architecture: { project: 'Architecture Studio', bytes: 180_000 },
+  code: { project: 'Code Works', bytes: 120_000 },
+  supervisor: { project: 'DomainExpantion', bytes: 90_000 },
+}
+
+function campusFor(item) {
+  return CAMPUSES[item.name]?.project || 'DomainExpantion'
+}
+
+function campusSizeBytes(item, run) {
+  const campus = CAMPUSES[item.name]
+  if (campus) return campus.bytes
+  if (run === 'working') return 80_000
+  if (item.status === 'live') return 40_000
+  return 4_000
 }
 
 const CHAT = 'http://127.0.0.1:8766/chat.html'
