@@ -30,14 +30,14 @@ const SUIT_TONES = [0xf3f1ec, 0xe8e4dc, 0xf7f4ee, 0xdfe4e8, 0xf1e9df]
 
 /** Trim + eye colour per behaviour. Eyes are pushed past 1.0 so the bloom pass catches them. */
 const AGENT_LOOK = {
-  working: { trim: 0x4f9a63, eye: [0.35, 2.5, 1.15] },
-  waiting: { trim: 0x4f7ec9, eye: [0.45, 1.5, 3.0] },
-  blocked: { trim: 0xc94f4f, eye: [3.0, 0.5, 0.45] },
-  celebrating: { trim: 0xc9a24f, eye: [2.9, 2.1, 0.6] },
-  idle: { trim: 0x8b8b85, eye: [1.1, 1.5, 1.7] },
-  sleeping: { trim: 0x5a5a70, eye: [0.7, 0.8, 1.4] },
-  spawning: { trim: 0xc96442, eye: [2.4, 1.4, 0.7] },
-  leaving: { trim: 0x6f7f75, eye: [1.0, 1.0, 1.1] },
+  working: { trim: 0x4f9a63, eye: [0.35, 2.5, 1.15], antenna: [0.25, 2.7, 0.75] },
+  waiting: { trim: 0x4f7ec9, eye: [0.45, 1.5, 3.0], antenna: [2.9, 1.7, 0.15] },
+  blocked: { trim: 0xc94f4f, eye: [3.0, 0.5, 0.45], antenna: [2.9, 0.4, 0.3] },
+  celebrating: { trim: 0xc9a24f, eye: [2.9, 2.1, 0.6], antenna: [2.6, 2.2, 0.55] },
+  idle: { trim: 0x8b8b85, eye: [1.1, 1.5, 1.7], antenna: [1.15, 1.3, 1.55] },
+  sleeping: { trim: 0x5a5a70, eye: [0.7, 0.8, 1.4], antenna: [0.45, 0.5, 0.7] },
+  spawning: { trim: 0xc96442, eye: [2.4, 1.4, 0.7], antenna: [2.4, 1.4, 0.55] },
+  leaving: { trim: 0x6f7f75, eye: [1.0, 1.0, 1.1], antenna: [0.9, 0.95, 1.05] },
 }
 
 const WALK_SPEED = 2.1
@@ -535,6 +535,7 @@ export class Astronauts {
       suit: SUIT_TONES[(hash(entry.id) >>> 3) % SUIT_TONES.length],
       eye: new THREE.Color(1, 1, 1),
       trim: new THREE.Color(0xffffff),
+      antenna: new THREE.Color(1, 1, 1),
       hop: 0,
       // Ground tracking. `groundAt` is the height last sampled and `groundY` the eased value
       // actually stood on; both start null so the first frame snaps instead of easing up.
@@ -600,6 +601,8 @@ export class Astronauts {
     const look = AGENT_LOOK[status] || AGENT_LOOK.idle
     agent.trim.set(look.trim)
     agent.eye.setRGB(look.eye[0], look.eye[1], look.eye[2])
+    const ant = look.antenna || look.eye
+    agent.antenna.setRGB(ant[0], ant[1], ant[2])
     agent.loop = FACE_LOOPS[status] || null
     agent.colorDirty = true
 
@@ -1247,12 +1250,13 @@ export class Astronauts {
         staticDirty = true
       }
 
-      // Antenna tip and chest lamp pulse; a blocked agent's lamp stutters like a fault light.
-      const pulse =
-        agent.status === 'blocked'
-          ? (Math.sin(elapsed * 9) > 0.2 ? 1 : 0.05)
-          : 0.55 + 0.45 * Math.sin(elapsed * 2.6 + agent.phase)
-      tip.setColorAt(i, c.copy(agent.eye).multiplyScalar(0.6 + pulse * 1.1))
+      // Antenna tip: idle cool white, working green, waiting-on-you amber, blocked red.
+      let pulse
+      if (agent.status === 'blocked') pulse = Math.sin(elapsed * 9) > 0.2 ? 1 : 0.08
+      else if (agent.status === 'waiting') pulse = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(elapsed * 6.2 + agent.phase))
+      else if (agent.status === 'working') pulse = 0.75 + 0.25 * Math.sin(elapsed * 4.2 + agent.phase)
+      else pulse = 0.4 + 0.2 * Math.sin(elapsed * 1.5 + agent.phase)
+      tip.setColorAt(i, c.copy(agent.antenna).multiplyScalar(pulse))
       lamp.setColorAt(i, c.copy(agent.trim).multiplyScalar(0.7 + pulse * 1.6))
 
       // Atlas frame for the face.
