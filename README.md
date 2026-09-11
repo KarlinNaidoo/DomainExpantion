@@ -58,4 +58,4 @@ docs/                   # architecture, branching, roadmap
 
 `main` is stable. `develop` is integration. Features go on `feature/<slug>` and merge to `develop` by PR.
 
-Details: [docs/branching.md](docs/branching.md) · architecture: [docs/architecture.md](docs/architecture.md) · plan: [docs/ROADMAP.md](docs/ROADMAP.md)
+Details: [docs/branching.md](docs/branching.md) · architecture: [docs/architecture.md](docs/architecture.md) · plan: [docs/ROADMAP.md](docs/ROADMAP.md) · colony: [docs/bot-crossing.md](docs/bot-crossing.md)
