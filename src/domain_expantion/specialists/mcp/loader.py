@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import threading
 import warnings
 from typing import Any
 
@@ -23,12 +24,53 @@ def github_token() -> str | None:
     return os.getenv("GITHUB_TOKEN") or os.getenv("GITHUB_PERSONAL_ACCESS_TOKEN") or None
 
 
+def _run_coro(coro: Any) -> Any:
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    box: list[Any] = []
+    err: list[BaseException] = []
+
+    def worker() -> None:
+        try:
+            box.append(asyncio.run(coro))
+        except BaseException as exc:
+            err.append(exc)
+
+    thread = threading.Thread(target=worker)
+    thread.start()
+    thread.join()
+    if err:
+        raise err[0]
+    return box[0]
+
+
+def as_sync_tool(tool: Any) -> Any:
+    """MCP adapter tools are async-only; the supervisor loop is sync."""
+    if getattr(tool, "func", None) is not None:
+        return tool
+    from langchain_core.tools import StructuredTool
+
+    def func(**kwargs: Any) -> Any:
+        return _run_coro(tool.ainvoke(kwargs))
+
+    func.__name__ = str(getattr(tool, "name", "mcp_tool"))
+    func.__doc__ = str(getattr(tool, "description", "") or func.__name__)
+    return StructuredTool.from_function(
+        func=func,
+        name=getattr(tool, "name", "mcp_tool"),
+        description=getattr(tool, "description", "") or func.__name__,
+        args_schema=getattr(tool, "args_schema", None),
+    )
+
+
 async def _list_tools(server: Any, label: str) -> list[Any]:
     try:
         async with MCPAdapter(server) as adapter:
             tools = await adapter.list_tools()
             logger.info("Loaded %s MCP tools from %s", len(tools), label)
-            return list(tools)
+            return [as_sync_tool(tool) for tool in tools]
     except Exception:
         logger.exception("Failed to load MCP server %s", label)
         return []

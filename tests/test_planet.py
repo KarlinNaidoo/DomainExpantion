@@ -9,7 +9,8 @@ from domain_expantion.planet.state import family_payload
 from domain_expantion.registry import Registry
 
 
-def test_planet_payload_includes_supervisor_and_specs(tmp_path) -> None:
+def test_planet_payload_includes_supervisor_and_specs(tmp_path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
     folder = tmp_path / "research"
     folder.mkdir()
     (folder / "SPEC.toml").write_text(
