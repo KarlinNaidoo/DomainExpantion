@@ -554,6 +554,7 @@ export class Astronauts {
       frame: 0,
       wander: new THREE.Vector3(),
       wanderAt: 0,
+      sprint: false,
       scale: walksOut ? 0 : 1, // pops up out of the ship, or was already standing there
       alive: true,
       path: null,
@@ -606,8 +607,24 @@ export class Astronauts {
       this._sendHome(agent)
       return
     }
-    // A spawning agent keeps walking out of the ship; everyone else re-targets at once.
-    if (agent.state !== 'spawning') agent.state = 'walking'
+    // A spawning agent keeps walking out of the ship.
+    if (agent.state === 'spawning') {
+      agent.stateAge = 0
+      agent.pathVersion = -1
+      return
+    }
+    // Work / wait / error: drop the stroll and run back to the building.
+    if (status === 'working' || status === 'waiting' || status === 'blocked') {
+      agent.sprint = true
+      agent.state = 'walking'
+      agent.stateAge = 0
+      agent.pathVersion = -1
+      return
+    }
+    // Idle: stay where they are and start a long roam, rather than marching home first.
+    agent.sprint = false
+    agent.state = 'at-site'
+    agent.wanderAt = 0
     agent.stateAge = 0
     agent.pathVersion = -1
   }
@@ -671,23 +688,24 @@ export class Astronauts {
    * Falls back to the goal itself when there is no path — an astronaut heading vaguely the
    * right way and sliding along walls beats one standing still because A* gave up.
    */
-  _steerTarget(agent, out) {
+  _steerTarget(agent, out, goal) {
+    const dest = goal || agent.site
     const nav = this.nav
-    if (!nav) return out.copy(agent.site)
+    if (!nav) return out.copy(dest)
 
     const stale =
       agent.pathVersion !== nav.version ||
-      agent.pathGoal.distanceToSquared(agent.site) > 0.25
+      agent.pathGoal.distanceToSquared(dest) > 0.25
     if (stale && this._routeBudget > 0) {
       this._routeBudget--
-      agent.path = nav.findPath(agent.pos.x, agent.pos.z, agent.site.x, agent.site.z)
+      agent.path = nav.findPath(agent.pos.x, agent.pos.z, dest.x, dest.z)
       agent.pathAt = 0
       agent.pathVersion = nav.version
-      agent.pathGoal.copy(agent.site)
+      agent.pathGoal.copy(dest)
     }
 
     const path = agent.path
-    if (!path || !path.length) return out.copy(agent.site)
+    if (!path || !path.length) return out.copy(dest)
 
     // Retire waypoints already reached, and any the agent can already see past.
     while (agent.pathAt < path.length - 1) {
@@ -697,7 +715,7 @@ export class Astronauts {
       if (dx * dx + dz * dz > WAYPOINT_REACHED * WAYPOINT_REACHED) break
       agent.pathAt++
     }
-    if (agent.pathAt >= path.length) return out.copy(agent.site)
+    if (agent.pathAt >= path.length) return out.copy(dest)
     const wp = path[agent.pathAt]
     return out.set(wp.x, 0, wp.z)
   }
@@ -721,7 +739,7 @@ export class Astronauts {
 
       case 'walking': {
         agent.scale = Math.min(1, agent.scale + dt * 3)
-        this._walk(agent, toSite, dist, dt, 1)
+        this._walk(agent, toSite, dist, dt, agent.sprint ? 1.85 : 1)
         // Close enough — settle into whatever this thread is actually doing. Or close
         // enough to *give up*: a site that something was built on top of between polls can
         // never be reached, and an astronaut shouldering a wall forever is worse than one
@@ -743,6 +761,7 @@ export class Astronauts {
           }
           agent.state = agent.status === 'leaving' ? 'leaving' : 'at-site'
           agent.stateAge = 0
+          agent.sprint = false
         }
         break
       }
@@ -915,35 +934,42 @@ export class Astronauts {
     return out
   }
 
-  /** A slow wander inside the plot, re-targeted every few seconds. */
+  /** A walkable spot somewhere on the colony, not just the home plot. */
+  _pickRoam(agent) {
+    const nav = this.nav
+    for (let i = 0; i < 16; i++) {
+      const a = Math.random() * Math.PI * 2
+      const r = 6 + Math.random() * 22
+      let wx = Math.cos(a) * r
+      let wz = Math.sin(a) * r
+      if (nav) {
+        if (nav.isBlocked(wx, wz)) {
+          const free = nav.nearestFree(wx, wz)
+          if (!free) continue
+          wx = nav.toWorld(free.ix)
+          wz = nav.toWorld(free.iz)
+        }
+      }
+      if (this._crowded(wx, wz, agent)) continue
+      agent.wander.set(wx, 0, wz)
+      return
+    }
+    agent.wander.copy(agent.site)
+  }
+
+  /** Idle roam across the colony, then a pause, then another long walk. */
   _drift(agent, dt, elapsed) {
     if (elapsed > agent.wanderAt) {
-      agent.wanderAt = elapsed + 3 + Math.random() * 5
-      // Stay put rather than walk at a wall — or at somebody. A few candidates and the
-      // first that is neither inside a building nor on top of a neighbour wins: separation
-      // can push a crowd apart, but it cannot stop one forming if everybody keeps choosing
-      // to walk into the same patch of ground.
-      agent.wander.copy(agent.site)
-      for (let i = 0; i < 4; i++) {
-        const a = Math.random() * Math.PI * 2
-        const r = 0.8 + Math.random() * 2
-        const wx = agent.site.x + Math.cos(a) * r
-        const wz = agent.site.z + Math.sin(a) * r
-        if (this.nav?.isBlocked(wx, wz)) continue
-        if (this._crowded(wx, wz, agent)) continue
-        agent.wander.set(wx, 0, wz)
-        break
-      }
+      agent.wanderAt = elapsed + 8 + Math.random() * 10
+      this._pickRoam(agent)
       agent.driftBlocked = false
+      agent.pathVersion = -1
     }
-    const to = this._v.set(agent.wander.x - agent.pos.x, 0, agent.wander.z - agent.pos.z)
-    const d = to.length()
+    const d = Math.hypot(agent.wander.x - agent.pos.x, agent.wander.z - agent.pos.z)
     if (d > DRIFT_ARRIVE && !agent.driftBlocked) {
-      this._walk(agent, to, d, dt, DRIFT_PACE)
-      // A drift leg is a straight line at a spot only ever checked for being *inside* a
-      // wall, never for being reachable — so it can run into the side of a building.
-      // Give the leg up at the first refused step rather than shuffling against the wall
-      // until the next wander comes due, which is several seconds of walking on the spot.
+      const steer = this._steerTarget(agent, this._wp, agent.wander)
+      const to = this._v.set(steer.x - agent.pos.x, 0, steer.z - agent.pos.z)
+      this._walk(agent, to, d, dt, 0.95)
       if (agent.blocked) agent.driftBlocked = true
       return
     }
