@@ -52,7 +52,7 @@ No LangGraph, no Grok, no Postgres. Opening a thread is normally an OS deep link
 
 | Colony | Domain Expantion |
 | --- | --- |
-| One astronaut + building | supervisor / research / architecture / code |
+| One astronaut + building | supervisor / architecture / code on **DomainExpantion**; research on **Research Center** (own hex campus, lab building) |
 | Harness adapter | `src/domain_expantion/planet/bot_crossing/` (copied onto vendor at launch) |
 | Snapshot | `.data/planet-family.json` (Python writes; Bot Crossing only reads) |
 | Working / idle | `.data/planet-activity.json` |

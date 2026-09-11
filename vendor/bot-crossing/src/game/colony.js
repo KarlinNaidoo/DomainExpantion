@@ -377,7 +377,11 @@ export class Colony {
     // — never because a different repo gained or lost a thread. `plotCells` carries it
     // between polls, and the colony file carries it between sessions.
     const layout = allocateCells(
-      projects.map(([name, list]) => ({ id: name, size: list.length })),
+      projects.map(([name, list]) => ({
+        id: name,
+        // Research Center is a campus of its own: a full hex flower even with one worker.
+        size: name === 'Research Center' ? Math.max(list.length, 7) : list.length,
+      })),
       this.plotCells
     )
     // Remembered, not replaced: a project that has just lost its last thread keeps its
@@ -474,7 +478,11 @@ export class Colony {
     const target = 1
 
     if (!entry) {
-      const mesh = createBuilding({ seed: hashString(thread.id), accent: plot.accent })
+      const kind =
+        thread.id === 'domain-expantion:research' || thread.project === 'Research Center'
+          ? 'lab'
+          : null
+      const mesh = createBuilding({ seed: hashString(thread.id), accent: plot.accent, kind })
       const pos = plot.worldSlot(index)
       mesh.position.copy(pos)
       mesh.rotation.y = ((hashString(thread.id) >>> 8) % 360) * (Math.PI / 180)
