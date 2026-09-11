@@ -32,4 +32,6 @@ def test_research_lives_on_its_own_campus() -> None:
     )
     text = adapter.read_text(encoding="utf-8")
     assert "Research Center" in text
+    assert "Architecture Studio" in text
+    assert "Code Works" in text
     assert "campusFor" in text

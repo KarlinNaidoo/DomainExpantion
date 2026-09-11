@@ -48,6 +48,27 @@ const LIVE_GROWTH = 0.004
 /** How many zones' positions to remember, including repos with nothing running in them. */
 const LAYOUT_MEMORY = 80
 
+/** Domain Expantion specialist campuses: a full hex flower each. */
+const CAMPUS_HEXES = {
+  DomainExpantion: 7,
+  'Research Center': 7,
+  'Architecture Studio': 7,
+  'Code Works': 7,
+}
+
+function campusHexes(name) {
+  return CAMPUS_HEXES[name] || 1
+}
+
+function campusBuildingKind(thread) {
+  if (thread.id === 'domain-expantion:research' || thread.project === 'Research Center') return 'lab'
+  if (thread.id === 'domain-expantion:architecture' || thread.project === 'Architecture Studio') {
+    return 'tower'
+  }
+  if (thread.id === 'domain-expantion:code' || thread.project === 'Code Works') return 'workshop'
+  return null
+}
+
 export const STATUS_ORDER = ['blocked', 'waiting', 'working', 'celebrating', 'idle', 'sleeping']
 
 export const STATUS_LABEL = {
@@ -379,8 +400,7 @@ export class Colony {
     const layout = allocateCells(
       projects.map(([name, list]) => ({
         id: name,
-        // Research Center is a campus of its own: a full hex flower even with one worker.
-        size: name === 'Research Center' ? Math.max(list.length, 7) : list.length,
+        size: Math.max(list.length, campusHexes(name)),
       })),
       this.plotCells
     )
@@ -478,11 +498,11 @@ export class Colony {
     const target = 1
 
     if (!entry) {
-      const kind =
-        thread.id === 'domain-expantion:research' || thread.project === 'Research Center'
-          ? 'lab'
-          : null
-      const mesh = createBuilding({ seed: hashString(thread.id), accent: plot.accent, kind })
+      const mesh = createBuilding({
+        seed: hashString(thread.id),
+        accent: plot.accent,
+        kind: campusBuildingKind(thread),
+      })
       const pos = plot.worldSlot(index)
       mesh.position.copy(pos)
       mesh.rotation.y = ((hashString(thread.id) >>> 8) % 360) * (Math.PI / 180)
